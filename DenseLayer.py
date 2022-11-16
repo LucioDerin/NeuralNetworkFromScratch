@@ -21,7 +21,7 @@
 
 
 #**********METHODS:**********#
-# forwardPass(self,): implements the forward pass of the inputs through the layer;
+# forwardPass(self,inputs): implements the forward pass of the inputs through the layer;
 
 #********FUNCTIONS:*********#
 
