@@ -6,12 +6,12 @@
 - I name every variable or function with lower camel case, every class with upper camel case; file names are in lower camel case except if they contain a class;
 
 ### Files description
-- `singleLayerForwardPass.py`: forward pass of a single input vector;
-- `singleLayerForwardPassBatchOfInputs.py`: forward pass of a batch of input data points;
-- `twoLayersForwardPassBatchOfInputs.py`: forward pass of a batch of data through two layers;
-- `DenseLayer.py`: contains the class `DenseLayer`;
-- `ActivationFunctions.py`: contains the activation functions' classes;
-- `LossFunctions.py`: contains the loss functions' classes;
+- `toyCode/singleLayerForwardPass.py`: forward pass of a single input vector;
+- `toyCode/singleLayerForwardPassBatchOfInputs.py`: forward pass of a batch of input data points;
+- `toyCode/twoLayersForwardPassBatchOfInputs.py`: forward pass of a batch of data through two layers;
+- `DiyKeras/DenseLayer.py`: contains the class `DenseLayer`;
+- `DiyKeras/ActivationFunctions.py`: contains the activation functions' classes;
+- `DiyKeras/LossFunctions.py`: contains the loss functions' classes;
 - `test.py`: a small test of all the implemented classes;
 
 ## General Notes
@@ -20,9 +20,9 @@
 A batch of data from the feature space is contained in the matrix $\hat{X}$. Even though each sample in the batch is a vector in the feature space, it is common practice to treat them as row vectors inside the matrix, so that $\hat{X}$ will be an $n\times d$ matrix (with $n$ number of samples and $d$ dimensionality of the feature space). Along with this choice, for any given matrix, it is common practice to let the first index run through the cardinality of the sample, and treat vectors as row vectors. For instance, the matrix of neuron's weights will have the first index selecting the i-th neuron and the second index selecting the j-th weight of the i-th neuron. The matrix $W$ will be $w \times d$ with $w$ width of the layer (number of neurons) and $d$ dimensionality of the input.
 
 With this choices, the action of a layer on the input batch (neglecting activation functions) is:
-$$\hat{Y} = \hat{X}W^{T} + b$$
+$$\hat{Y} = \hat{X}W^\top + b$$
 
-$\hat{X}W^{T}$ is a matrix product between matrix of shapes $n\times d$ and $d \times w$ resulting in a matrix $n \times w$; the first index of the output matrix points to the output of the i-th data point, and the second index runs through the dimensionality of the output space.
+$\hat{X}W^\top$ is a matrix product between matrix of shapes $n\times d$ and $d \times w$ resulting in a matrix $n \times w$; the first index of the output matrix points to the output of the i-th data point, and the second index runs through the dimensionality of the output space.
 **Note 1:** Later in the book, the authors define the weights' matrix to be of shape $d \times w$ in order to get rid of the transpose operation. This has obvious computational advantages, so I will adopt their choice, making the first index of $W$ run trough the dimensionality of the input space and the second one run through the neurons in the layer. With this choice the forward pass is simply:
 $$\hat{Y} = \hat{X}W + b$$
 and we avoid a transposition each time.
@@ -84,7 +84,65 @@ Categorical (binary) cross-entropy works by pushing the network to maximize the 
 
 **Note:** when using categorical cross-entropy the belonging class of the point must be labelled with 1 and the others to zero, not $\pm1$. This is called **one-hot** encoding.
 
+### Backpropagation
 
+Backpropagation is the algorithm that calculates the gradient of the loss function with respect to the weights of the neurons: the gradient is then deployed to minimize the loss with iterative optimizer. The key tool of backpropagation is the chain rule: $\frac{\partial}{\partial x} f(g(x)) = \frac{\partial f}{\partial g}\frac{\partial g}{\partial x}$. 
+
+Chain rule can be iteratively applied to the function that maps the input of the network to its outputs, since this function is the composition of each forward pass.
+
+The name backpropagation is due to the fact that the gradient of the loss function is evaluated by multiplying the gradient of each layer, starting from the last one and going backward: this is because, when applying chain rule, one starts by differentiating the "outer" function, which in our case is the last forward pass.
+
+To calculate the gradient with backpropagation we need to do four steps:
+1. Calculate the gradient of the loss function (the first differentiation in backpropagation order);
+2. "Climb up" to the layer that contains the weight/bias with respect to which we are differentiating, and we need to link layers together while we go up;
+3. Differentiate the activation function with respect to the linear combination $\hat{X}W+b$ calculated by the neurons;
+4. Calculate gradient of the linear combination itself;
+
+We go through each step, but not in backpropagation order. Step 1 and 3 depend on the choices of loss and activations we make in the algorithm design, so they will be treated case by case. Let's start with linking layers together.
+
+#### Step 2: Chaining Layers in Backpropagation
+For the sake of simplicity let's consider two layers composed by one neuron each, and taking in input just one connection each.
+
+Let's call the first neuron (first in the architecture) neuron 1, and the second neuron 2. Their quantities will be denoted with the respective subscript. Let $x_i$ be the input of the neuron $i$, and $y_i$ its output. The output $y_2$ of the network is:
+
+$$y_2 = \sigma_2 (w_2\cdot x_2 + b_2) = \sigma_2 (w_2\cdot y_1 + b_2)$$
+where $y_1$ is the output of the first neuron. Let's explicit that:
+
+$$y_2 = \sigma_2 (w_2 \cdot (w_1\cdot x_1 + b_1) + b_2)$$
+
+Let's evaluate the derivative of $y_2$ with respect to the bias and weight of the first layer:
+
+$$\frac{\partial y_2}{\partial w_1} = \frac{\partial \sigma_2(w_2 \cdot y_1(w_1) + b_2)}{\partial (w_2 \cdot y_1(w_1) + b_2)} \frac{\partial (w_2 \cdot y_1(w_1) + b_2)}{\partial y_1(w_1)} \frac{\partial y_1(w_1)}{\partial w_1} = \frac{\partial y_2}{\partial x_2} \frac{\partial y_1}{\partial w_1}$$
+
+Where I've defined: 
+$$\frac{\partial y_2}{\partial x_2} \coloneqq \frac{\partial \sigma_2(w_2 \cdot y_1(w_1) + b_2)}{\partial (w_2 \cdot y_1(w_1) + b_2)} \frac{\partial (w_2 \cdot y_1(w_1) + b_2)}{\partial y_1(w_1)}$$
+
+which is the derivative of the output of the second layer with respect to its inputs, with the chain rule made explicit.
+
+From this example we can generalize one important result: when differentiating the output of a network with respect to the neuron $j$ of the layer $i$ we need to differentiete the output of the layer $j$ with respect to the weight $i$, but firstly we need to "go backward to the layer $j$ starting from the last one". This "going backward" is made by iteratively differentiate the outer functions with respect to their portion which depends on $w_{i,j}$: i.e. their inputs! This is because the output of the layer $j$ is the input of the layer $j+1$ and so on, so de dependance of the weight $w_{i,j}$ is implicitly contained in the inputs of the consecutive layers. **When backpropagating, the quantity that chains a layer with the previous (pervious in a backpropagation sense) is the derivative of the previous layers with respect to its inputs!**
+
+#### Step (3),4: Derivative of the output of a layer
+Now that we know how to chan layers to "climb back" to the one we need to differentiate, we must differentiate the layer itself with respect to its weights. We end up with two terms, again thank to chain rule. The output of a layer is given by:
+$$y = \sigma(f(\hat{X};W;b)) = \sigma (\hat{X}W + b)$$
+Chain rule gives:
+$$\nabla_w y = \frac{\partial \sigma}{\partial f} \nabla_w \hat{X}W$$
+$$\nabla_b y = \frac{\partial \sigma}{\partial f} \nabla_b b$$
+The two arising terms are:
+- The derivative of the activation function with respect to its input, this will be treated case by case;
+- The gradient of the linear combination with respect to the weights or the biases;
+The first term depends on the activation function we've chosen for the layer, the second is easy to solve:
+- $\nabla_w \hat{X}W = X^\top$
+- $\nabla_b b = \mathbb{I}$
+
+Now we have everything we need to apply backpropagation. We only need to differentiate the common losses and activation functions. Let's do it.
+
+#### Step 3: Derivative of the activation function
+##### ReLU
+The derivative of the ReLU function is straightforward: 
+$$\frac{d ReLU(x)}{dx} = \begin{cases}  
+    1 & \text{if } x\geq 0 \\
+    0 & \text{if } x<0
+\end{cases}$$
 
 
 ### Things to try

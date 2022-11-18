@@ -8,10 +8,10 @@ class Loss:
         '''
         Calculates the empirical loss on a batch of data.
         Parameters:
-        @ yTrues: the true values;
-        @ yPreds: the confidence scores;
+        @yTrues: the true values;
+        @yPreds: the confidence scores;
         Returns:
-        @ empirical_loss: float, the empirical loss on the batch.
+        @empirical_loss: float, the empirical loss on the batch.
         '''
         # Calculate sample losses
         sample_losses = self.forwardPass(yTrues, yPreds)
@@ -26,10 +26,10 @@ class CategoricalCrossEntropy(Loss):
         '''
         Calculates the Categorical Cross Entropy loss function on a batch of predictions.
         Parameters:
-        @ yTrues: belonging category of the points, can be categorical labels or one-hot vector representation.
-        @ yPreds: batch of confidence scores;
+        @yTrues: belonging category of the points, can be categorical labels or one-hot vector representation.
+        @yPreds: batch of confidence scores;
         Returns:
-        @ negative_log_likelihood: numpy array of shape (nBatch,), loss for each prediction in the batch;
+        @negative_log_likelihood: numpy array of shape (nBatch,), loss for each prediction in the batch;
         '''
 
         # Number of samples in a batch
@@ -62,10 +62,10 @@ class Accuracy(Loss):
         '''
         Calculates the Accuracy on a batch of predictions.
         Parameters:
-        @ yTrues: belonging category of the points, can be categorical labels or one-hot vector representation.
-        @ yPreds: batch of confidence scores;
+        @yTrues: belonging category of the points, can be categorical labels or one-hot vector representation.
+        @yPreds: batch of confidence scores;
         Returns:
-        @ accuracy: float, the percentage of correct predictions;
+        @accuracy: float, the percentage of correct predictions;
         '''
 
         # Predicted class is the index of the maximum of the confidence scores vector

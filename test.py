@@ -3,9 +3,9 @@
 import numpy as np
 from matplotlib import pyplot as plt
 from nnfs.datasets import spiral_data
-from DenseLayer import DenseLayer
-from ActivationFunctions import ActivationReLU, ActivationSoftmax
-from LossFunctions import CategoricalCrossEntropy, Accuracy
+from DiyKeras.DenseLayer import DenseLayer
+from DiyKeras.ActivationFunctions import ActivationReLU, ActivationSoftmax
+from DiyKeras.LossFunctions import CategoricalCrossEntropy, Accuracy
 
 if __name__ == "__main__":
     # Import dataset
