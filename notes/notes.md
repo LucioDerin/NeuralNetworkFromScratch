@@ -86,7 +86,7 @@ Categorical (binary) cross-entropy works by pushing the network to maximize the 
 
 ### Backpropagation
 
-Backpropagation is the algorithm that calculates the gradient of the loss function with respect to the weights of the neurons: the gradient is then deployed to minimize the loss with iterative optimizer. The key tool of backpropagation is the chain rule: $\frac{\partial}{\partial x} f(g(x)) = \frac{\partial f}{\partial g}\frac{\partial g}{\partial x}$. 
+Backpropagation is the algorithm that calculates the gradient of the loss function with respect to the weights of the neurons: the gradient is then deployed to minimize the loss with iterative optimizers. The key tool of backpropagation is the chain rule: $\frac{\partial}{\partial x} f(g(x)) = \frac{\partial f}{\partial g}\frac{\partial g}{\partial x}$. 
 
 Chain rule can be iteratively applied to the function that maps the input of the network to its outputs, since this function is the composition of each forward pass.
 
@@ -119,10 +119,10 @@ $$\frac{\partial y_2}{\partial x_2} \coloneqq \frac{\partial \sigma_2(w_2 \cdot 
 
 which is the derivative of the output of the second layer with respect to its inputs, with the chain rule made explicit.
 
-From this example we can generalize one important result: when differentiating the output of a network with respect to the neuron $j$ of the layer $i$ we need to differentiete the output of the layer $j$ with respect to the weight $i$, but firstly we need to "go backward to the layer $j$ starting from the last one". This "going backward" is made by iteratively differentiate the outer functions with respect to their portion which depends on $w_{i,j}$: i.e. their inputs! This is because the output of the layer $j$ is the input of the layer $j+1$ and so on, so de dependance of the weight $w_{i,j}$ is implicitly contained in the inputs of the consecutive layers. **When backpropagating, the quantity that chains a layer with the previous (pervious in a backpropagation sense) is the derivative of the previous layers with respect to its inputs!**
+From this example we can generalize one important result: when differentiating the output of a network with respect to the neuron $j$ of the layer $i$ we need to differentiete the output of the layer $j$ with respect to the weight $i$, but firstly we need to "go backward to the layer $j$ starting from the last one". This "going backward" is made by iteratively differentiate the outer functions with respect to their portion which depends on $w_{i,j}$: i.e. their inputs! This is because the output of the layer $j$ is the input of the layer $j+1$ and so on, so the dependance of the weight $w_{i,j}$ is implicitly contained in the inputs of the consecutive layers. **When backpropagating, the quantity that chains a layer with the previous (pervious in a backpropagation sense) is the derivative of the previous layers with respect to its inputs!**
 
 #### Step (3),4: Derivative of the output of a layer
-Now that we know how to chan layers to "climb back" to the one we need to differentiate, we must differentiate the layer itself with respect to its weights. We end up with two terms, again thank to chain rule. The output of a layer is given by:
+Now that we know how to chain layers to "climb back" to the one we need to differentiate, we must differentiate the layer itself with respect to its weights and biases. We end up with two terms, again thank to chain rule. The output of a layer is given by:
 $$y = \sigma(f(\hat{X};W;b)) = \sigma (\hat{X}W + b)$$
 Chain rule gives:
 $$\nabla_w y = \frac{\partial \sigma}{\partial f} \nabla_w \hat{X}W$$
@@ -130,6 +130,7 @@ $$\nabla_b y = \frac{\partial \sigma}{\partial f} \nabla_b b$$
 The two arising terms are:
 - The derivative of the activation function with respect to its input, this will be treated case by case;
 - The gradient of the linear combination with respect to the weights or the biases;
+
 The first term depends on the activation function we've chosen for the layer, the second is easy to solve:
 - $\nabla_w \hat{X}W = X^\top$
 - $\nabla_b b = \mathbb{I}$
