@@ -32,7 +32,7 @@ class DenseLayer:
         self.inputs = inputs
         self.output = inputs@self.weights + self.biases
 
-    def backward(self, dvalues):
+    def backwardPass(self, dvalues):
         '''
         Evaluates the backward pass with current weights and biases on a batch of data. Results are
         stored in the public member self.dweights, self.dbiases, self.dinputs.

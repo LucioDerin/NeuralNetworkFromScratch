@@ -98,12 +98,20 @@ To calculate the gradient with backpropagation we need to do four steps:
 3. Differentiate the activation function with respect to the linear combination $\hat{X}W+b$ calculated by the neurons;
 4. Calculate gradient of the linear combination itself;
 
-We go through each step, but not in backpropagation order. Step 1 and 3 depend on the choices of loss and activations we make in the algorithm design, so they will be treated case by case. Let's start with linking layers together.
+We go through each step.
+
+#### Step 1: Loss function derivative
+
+##### Categorical Cross-Entropy
+We recall the functional form of the categorical cross-entropy loss:
+$$\hat{L}_{CE} = -\sum\limits_{i} y_i \ln(\hat{y}_i)$$
+We take the derivative with respect to the part that contains an implicit dependance on the model parameters, i.e. $\hat{y_i}$:
+$$\frac{\partial \hat{L}_{CE}}{\partial \hat{y}_j} = -\sum\limits_{i}y_i \frac{\partial}{\partial \hat{y}_j} \ln(\hat{y}_i) = - \sum\limits_i \frac{y_i}{\hat{y}_j}\delta_{ij} = -\frac{y_i}{\hat{y}_i}$$
 
 #### Step 2: Chaining Layers in Backpropagation
 For the sake of simplicity let's consider two layers composed by one neuron each, and taking in input just one connection each.
 
-Let's call the first neuron (first in the architecture) neuron 1, and the second neuron 2. Their quantities will be denoted with the respective subscript. Let $x_i$ be the input of the neuron $i$, and $y_i$ its output. The output $y_2$ of the network is:
+Let's call the first neuron (first in the architecture) "neuron 1", and the second "neuron 2". Their quantities will be denoted with their respective subscript. Let $x_i$ be the input of the neuron $i$, and $y_i$ its output. The output $y_2$ of the network is:
 
 $$y_2 = \sigma_2 (w_2\cdot x_2 + b_2) = \sigma_2 (w_2\cdot y_1 + b_2)$$
 where $y_1$ is the output of the first neuron. Let's explicit that:
@@ -119,32 +127,79 @@ $$\frac{\partial y_2}{\partial x_2} \coloneqq \frac{\partial \sigma_2(w_2 \cdot 
 
 which is the derivative of the output of the second layer with respect to its inputs, with the chain rule made explicit.
 
-From this example we can generalize one important result: when differentiating the output of a network with respect to the neuron $j$ of the layer $i$ we need to differentiete the output of the layer $j$ with respect to the weight $i$, but firstly we need to "go backward to the layer $j$ starting from the last one". This "going backward" is made by iteratively differentiate the outer functions with respect to their portion which depends on $w_{i,j}$: i.e. their inputs! This is because the output of the layer $j$ is the input of the layer $j+1$ and so on, so the dependance of the weight $w_{i,j}$ is implicitly contained in the inputs of the consecutive layers. **When backpropagating, the quantity that chains a layer with the previous (pervious in a backpropagation sense) is the derivative of the previous layers with respect to its inputs!**
+From this example we can generalize one important result: when differentiating the output of a network with respect to a weight of the neuron $j$ of the layer $i$ we need to differentiate the output of the layer $j$ with respect to the weight $i$, but firstly we need to "go backward to the layer $j$ starting from the last one". This "going backward" is made by iteratively differentiate the outer functions with respect to their portion which depends on $w_{i,j}$: i.e. their inputs! This is because the output of the layer $j$ is the input of the layer $j+1$ and so on, so the dependance of the weight $w_{i,j}$ is implicitly contained in the inputs of the consecutive layers. **When backpropagating, the quantity that chains a layer with the previous (pervious in a backpropagation sense) is the derivative of the previous layers with respect to its inputs!**
 
-#### Step (3),4: Derivative of the output of a layer
-Now that we know how to chain layers to "climb back" to the one we need to differentiate, we must differentiate the layer itself with respect to its weights and biases. We end up with two terms, again thank to chain rule. The output of a layer is given by:
-$$y = \sigma(f(\hat{X};W;b)) = \sigma (\hat{X}W + b)$$
-Chain rule gives:
-$$\nabla_w y = \frac{\partial \sigma}{\partial f} \nabla_w \hat{X}W$$
-$$\nabla_b y = \frac{\partial \sigma}{\partial f} \nabla_b b$$
-The two arising terms are:
-- The derivative of the activation function with respect to its input, this will be treated case by case;
-- The gradient of the linear combination with respect to the weights or the biases;
-
-The first term depends on the activation function we've chosen for the layer, the second is easy to solve:
-- $\nabla_w \hat{X}W = X^\top$
-- $\nabla_b b = \mathbb{I}$
-
-Now we have everything we need to apply backpropagation. We only need to differentiate the common losses and activation functions. Let's do it.
 
 #### Step 3: Derivative of the activation function
 ##### ReLU
 The derivative of the ReLU function is straightforward: 
 $$\frac{d ReLU(x)}{dx} = \begin{cases}  
-    1 & \text{if } x\geq 0 \\
+    1 & \text{if } x>0 \\
     0 & \text{if } x<0
 \end{cases}$$
+Techincally, in zero the ReLU is not differentiable. By exploiting the so called subgradient one might take the smallest value of the derivatives in zero and define:
+$$\frac{d_{sub} ReLU(x)}{dx} = \begin{cases}  
+    1 & \text{if } x>0 \\
+    0 & \text{if } x\leq0
+\end{cases}$$
 
+##### Softmax
+We recall the functional form of the softmax activation:
+$$S_i = \frac{e^{x_i}}{\sum\limits_{j=1}^{d}e^{x_j}}$$
+We need to differentiate it wrt $x_k$ since it is the quantity that implicitly depends on the parameters of the model.
+
+$$\frac{\partial S_i}{\partial x_k} = \frac{\partial}{\partial x_k} (e^{x_i}) \cdot \frac{1}{\sum\limits_{j=1}^{d}e^{x_j}} + e^{x_i} \cdot \frac{\partial}{\partial x_k} \frac{1}{\sum\limits_{j=1}^{d}e^{x_j}} = \frac{e^{x_i}\delta_{ik}}{\sum\limits_{j=1}^{d}e^{x_j}} - e^{x_i} \frac{1}{(\sum\limits_{j=1}^{d}e^{x_j})^2}e^{x_k} = $$
+
+$$= \frac{e^{x_i}\delta_{ik}}{\sum\limits_{j=1}^{d}e^{x_j}} - \frac{e^{x_i}}{\sum\limits_{j=1}^{d}e^{x_j}}\frac{e^{x_k}}{\sum\limits_{j=1}^{d}e^{x_j}} = S_i \delta_{ik} - S_i S_k$$
+
+When we let i and k run we get a matrix equation:
+$$\mathbb{I} \bm{S} - (\overleftrightarrow{S})$$
+where $\bm{S}$ is the vector of confidence scores and $\overleftrightarrow{S}$ is the matrix with entries: $\overleftrightarrow{S}_{ij} = S_iS_j$. The resulting matrix is the Jacobian matrix.
+
+Note that this time the result of the differentiation is a matrix (the Jacobian), while for the previous derivatives the results were vectors or scalars. This is because this time we are differentiating a vector (the output of the softmax): the result of the differentiation of a vectorial field is a Jacobian, not a gradient.
+
+Finally, we generalize to a batch of data: in this case we'll get a Jacobian for each point in the batch, so the equation will be a "tensor" equation.
+The last question to answer is this: to chain the softmax with the next (in backpropagation sense) layers we use a vector, not a matrix (the variable `dvalues` which is the parameter in every backwardPass method is indeed a vector). How do we convert the Jacobian into a vector? And how do we chain it with the previous layer (which is the loss function, since the softmax is the last layer)?
+
+The $j$-th row of the Jacobian is the gradient of the $j$-th output of the softmax wrt the inputs of the softmax. We chain the gradient of the loss function with the Jacobian of the softmax to obtain the result vector we need:
+$$\bm{v} = \bm{J_S}\nabla \hat{L}$$
+We are projecting the gradient of the loss function on each gradient of the softmax wrt each of its inputs. The entries of the resulting vector are these scalar products:
+$$(\bm{v})_i = \nabla_{x}S_i \cdot \nabla_y \hat{L}$$
+where $x$ are the softmax's inputs and $y$ are the softmax's outputs (i.e. loss function's inputs). The vector $\bm{v}$ is the final result of the backpropagation of one point, as we wanted. Again consistently with our sizes requests, when operating with a batch of data the result of backpropagation is of shape `(nBatch,nCategories)`. 
+
+**Computational note:** when building the matrix $\mathbb{I}\bm{S}$ one could use `np.eye(nCategories)@S`, but this implies the instantiation of an identity matrix and then a `matmul`.
+It's more convenient to use the function `np.diagflat(S)` which directly creates a diagonal matrix with the entries of the vector `S` on the diagonal.
+
+##### Softmax & Categorical Cross-Entropy
+If we are using softmax and categorical cross-entropy together, the analytical solution of these two backpropagation steps takes a simple form that is computationally faster than chaining the layer together by calculating the gradients separately and then projecting them on each others as we did before. Let's calculate the analytical solution of the gradient. We start from the following results:
+- Jacobian of the softmax wrt its inputs: $\bm{J_S} = \mathbb{I}\bm{S} - \overleftrightarrow{S} \implies (\bm{J_S})_{ij} = S_i\delta_{ij} - S_i S_j$
+- Gradient of the cross-entropy wrt softmax's outputs: $(\nabla_{\bm{S}}\hat{L}_{CE})_i = -\frac{y_i}{S_i}$
+
+Now we explicitly calculate the entries of $\bm{v}$:
+
+$$(\bm{v})_k = (\bm{J_S} \nabla_{\bm{S}}\hat{L}_{CE})_k = \sum\limits_{j} (\bm{J_S})_{kj} (\nabla_{\bm{S}}\hat{L}_{CE})_j = \sum\limits_j (S_k\delta_{kj}-S_kS_j)(-\frac{y_j}{S_j}) =$$
+$$= -\sum\limits_j \frac{y_jS_k}{S_j} \delta_{kj} + S_k \sum\limits_j y_j  = -y_j + S_k = \hat{y}_k - y_k$$
+where, to evaluate the sum in the second term, I exploited the fact that $y$ are one-hot vectors so the sum of their components is 1.
+
+We've come to a simpler form for the gradient of the categorical cross-entropy combined with the softmax activation:
+
+$$(\bm{v})_k = \hat{y}_k - y_k$$
+
+#### Step (3),4: Derivative of the output of a layer
+Now that we know how to chain layers to "climb back" to the one we need to differentiate and how to differentiate losses and activation functions, we must differentiate the layer itself with respect to its weights and biases. We end up with two terms, again thank to chain rule. The output of a layer is given by:
+$$y = \sigma(f(\hat{X};W;b)) = \sigma (\hat{X}W + b)$$
+Chain rule gives:
+$$\nabla_w y = \frac{\partial \sigma}{\partial f} \nabla_w \hat{X}W$$
+$$\nabla_b y = \frac{\partial \sigma}{\partial f} \nabla_b b$$
+The two arising terms are:
+- The derivative of the activation function with respect to its input, which we discussed in step 3;
+- The gradient of the linear combination with respect to the weights or the biases;
+
+The gradients of the linear combination are:
+- $\nabla_w \hat{X}W = X^\top$
+- $\nabla_b b = 1$
+
+Now we have everything we need to apply backpropagation.
 
 ### Things to try
 - Add a little offset to the weights initialization so that no weight is set to zero and check if training convergence changes significantly (biases are set to zero, so in conjunction with a zero weight the neuron won't fire at the beginning of the training); eg instead of doing 

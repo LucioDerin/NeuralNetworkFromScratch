@@ -56,6 +56,31 @@ class CategoricalCrossEntropy(Loss):
         negative_log_likelihoods = -np.log(correct_confidences)
         return negative_log_likelihoods
 
+    def backwardPass(self, yTrue, yPred):
+        '''
+        Evaluates the backward pass wrt yPred. Result is stored in public member self.dinputs.
+        Parameters:
+        @yTrue: array of shape (nBatch,) if belonging category is represented with its index or (nBatch,nCategories) if one-hot, ground truth labels;
+        @yPred: array of shape (nBatch, nCategories), confidence scores (SoftMax's output).
+        Modifies:
+        @self.dinputs: array of shape (nBatch, nCategories), gradient of the loss function wrt yPred;
+        '''
+        # Number of samples
+        nSamples = len(yPred) if isinstance(yPred,list) else yPred.shape[0]
+
+        # Number of labels in every sample (output dimensionality)
+        labels = len(yPred[0]) if isinstance(yPred[0],list) else yPred[0].shape[0]
+
+        # If labels are sparse, turn them into one-hot vector
+        if len(yTrue.shape) == 1:
+            yTrue = np.eye(labels)[yTrue]
+
+        # Calculate gradient
+        # 
+        self.dinputs = -yTrue / yPred
+        # Normalize gradient
+        self.dinputs = self.dinputs / nSamples
+
 class Accuracy(Loss):
 
     def calculate(self,yTrues,yPreds):
