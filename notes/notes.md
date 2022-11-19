@@ -86,7 +86,7 @@ Categorical (binary) cross-entropy works by pushing the network to maximize the 
 
 ### Backpropagation
 
-Backpropagation is the algorithm that calculates the gradient of the loss function with respect to the weights of the neurons: the gradient is then deployed to minimize the loss with iterative optimizers. The key tool of backpropagation is the chain rule: $\frac{\partial}{\partial x} f(g(x)) = \frac{\partial f}{\partial g}\frac{\partial g}{\partial x}$. 
+Backpropagation is an automatic differentiation algorithm. It calculates the gradient of the loss function with respect to the weights of the neurons: the gradient is then deployed to minimize the loss with iterative optimizers. The key tool of backpropagation is the chain rule: $\frac{\partial}{\partial x} f(g(x)) = \frac{\partial f}{\partial g}\frac{\partial g}{\partial x}$. 
 
 Chain rule can be iteratively applied to the function that maps the input of the network to its outputs, since this function is the composition of each forward pass.
 
@@ -200,6 +200,19 @@ The gradients of the linear combination are:
 - $\nabla_b b = 1$
 
 Now we have everything we need to apply backpropagation.
+
+### Optimizers
+Differently from the book, I utilize the following naming convention for optimizers:
+- Gradient Descend: calculates the gradient on all of the data in the training set;
+- Stochastic Gradient Descend: calculates the gradient on one random point of the training set;
+- Minibatch Gradient Descend: calculates the gradient on a sub-sample of the training set;
+
+#### Gradient Descend
+The update of the weights of a layer is given by:
+$$\bm{w}_{t+1} = \bm{w}_{t} - \gamma \nabla_{\bm{W}} \hat{L}$$
+In the implementation of the backward pass of the book, the gradient is already evaluated as the mean of the gradients on all of the points in the batch (`self.inputs.T@dvalues` is the mean of all of the gradients, because the row $j$ contains th sum of all of the $j$-th components of the data multiplied by the $j$-th component of their respective gradients; the factor $\frac{1}{N}$ is there because we've normalized the gradient of the loss function). So the implementation of the book is a full-batch gradient descend. To implement SGD or mini-batch GD I will need to modify all of the backward passes, for them to consider just one data point or a bunch of them.
+
+**Note:** the decision between GD/SGD/mini-batch GD is not in the optimizer class but in how layers/activation functions/loss calculate their gradients.
 
 ### Things to try
 - Add a little offset to the weights initialization so that no weight is set to zero and check if training convergence changes significantly (biases are set to zero, so in conjunction with a zero weight the neuron won't fire at the beginning of the training); eg instead of doing 

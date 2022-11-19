@@ -6,6 +6,8 @@ class DenseLayer:
     scale = 0.01
     # the offset to the weights initialization
     epsilon = 0
+
+    # Constructor
     def __init__(self,dInput,nNeurons):
         '''
         Constructor, initializes the weights and the biases of the layer.

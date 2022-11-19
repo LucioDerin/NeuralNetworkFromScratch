@@ -75,6 +75,7 @@ class ActivationSoftmax:
 # Softmax activation + Categorical Cross Entropy loss
 class ActivationSoftmaxCategoricalCrossEntropy():
     
+    # Constructor
     def __init__(self):
         '''
         Initializer, instantiates the cross-entropy loss and the softmax activation.
@@ -86,6 +87,7 @@ class ActivationSoftmaxCategoricalCrossEntropy():
         '''
         Applies the softmax activation function and calculates the CE loss.
         Parameters:
+        @yTrue: array of shape (nBatch,) if belonging category is represented with its index or (nBatch,nCategories) if one-hot, ground truth labels;
         @inputs: batch of linear combination of the inputs of the layer.
         Returns:
         @loss: float, cross-entropy loss of the batch of predictions;
@@ -95,7 +97,7 @@ class ActivationSoftmaxCategoricalCrossEntropy():
         # Set the output
         self.output = self.activation.output
         # Calculate and return loss value
-        return self.loss.calculate(self.output, yTrue)
+        return self.loss.calculate(yTrue, self.output)
 
     def backwardPass(self, yTrue, yPred):
         '''
