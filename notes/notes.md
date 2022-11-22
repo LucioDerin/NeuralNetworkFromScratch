@@ -12,7 +12,9 @@
 - `DiyKeras/DenseLayer.py`: contains the class `DenseLayer`;
 - `DiyKeras/ActivationFunctions.py`: contains the activation functions' classes;
 - `DiyKeras/LossFunctions.py`: contains the loss functions' classes;
-- `test.py`: a small test of all the implemented classes;
+- `test.py`: a small test of the forward pass of the implemented classes;
+- `testBackprop.py`: a small test of the backward pass of the implemented classes;
+- `GDtest.py`: a small test of the minimization process;
 
 ## General Notes
 
@@ -213,6 +215,25 @@ $$\bm{w}_{t+1} = \bm{w}_{t} - \gamma \nabla_{\bm{W}} \hat{L}$$
 In the implementation of the backward pass of the book, the gradient is already evaluated as the mean of the gradients on all of the points in the batch (`self.inputs.T@dvalues` is the mean of all of the gradients, because the row $j$ contains th sum of all of the $j$-th components of the data multiplied by the $j$-th component of their respective gradients; the factor $\frac{1}{N}$ is there because we've normalized the gradient of the loss function). So the implementation of the book is a full-batch gradient descend. To implement SGD or mini-batch GD I will need to modify all of the backward passes, for them to consider just one data point or a bunch of them.
 
 **Note:** the decision between GD/SGD/mini-batch GD is not in the optimizer class but in how layers/activation functions/loss calculate their gradients.
+
+#### Learning Rate
+Learning rate is the fraction of the gradient that we use to update the parameters. It is a crucial hyperparameter of the model and its value can make the difference between the model converging to the global minimum of the loss function or for it to get stuck in a local sub-optimal minimum.
+
+Since the loss function of a NN is characterized by a lot of local minima the problem of not getting stuck in them is of primary importance. An high learning rate guarantees a good exploration of the loss domain, eventually finding the global minimum. On the other hand, an high learning rate makes the model unstable, because a stabilization of the parameters won't happen unless the gradient is very close to zero (which is unlikely). This means that we need to find a trade-off between exploration and stability (similar to importance sampling). This is why other algorithms aside GD/SGD are deployed, mainly adding learning rate decay and inertia to the minimizer.
+
+<center>
+<img src="learningRatesLoss.jpg" alt="drawing" width="200"/>
+</center>
+
+##### Learning Rate Decay
+The first idea is to modify the learning rate during training. One can do it dynamically based on how the loss is evolving (e.g. speeding up the learning rate when the loss is stabilizing and vice versa, kind of like importance sampling), or by letting the learning rate decay with iterations:
+
+$$LR(i) = LR(0) \cdot \frac{1}{1+\varepsilon i}$$
+where $i$ is the iterations' index.
+
+#### GD with momentum
+Another solution to avoid getting stuck in a local minimum is adding an inertia term to the GD recursive equation, making it actually solve the differential equation of a ball rolling downhill.
+The inertia term can make the ball overcome a local minimum if it's not too deep. Indeed, the inertia term might make the direction of the next step pointing away from the local minimum even if the gradient would of course point towards it.
 
 ### Things to try
 - Add a little offset to the weights initialization so that no weight is set to zero and check if training convergence changes significantly (biases are set to zero, so in conjunction with a zero weight the neuron won't fire at the beginning of the training); eg instead of doing 
