@@ -215,6 +215,7 @@ $$\bm{w}_{t+1} = \bm{w}_{t} - \gamma \nabla_{\bm{W}} \hat{L}$$
 In the implementation of the backward pass of the book, the gradient is already evaluated as the mean of the gradients on all of the points in the batch (`self.inputs.T@dvalues` is the mean of all of the gradients, because the row $j$ contains th sum of all of the $j$-th components of the data multiplied by the $j$-th component of their respective gradients; the factor $\frac{1}{N}$ is there because we've normalized the gradient of the loss function). So the implementation of the book is a full-batch gradient descend. To implement SGD or mini-batch GD I will need to modify all of the backward passes, for them to consider just one data point or a bunch of them.
 
 **Note:** the decision between GD/SGD/mini-batch GD is not in the optimizer class but in how layers/activation functions/loss calculate their gradients.
+**Note:** the normalization of the gradient is inserted to avoid exploding gradients: if the sum of all of the gradients is too big the value overflows and the model becomes untrainable.
 
 #### Learning Rate
 Learning rate is the fraction of the gradient that we use to update the parameters. It is a crucial hyperparameter of the model and its value can make the difference between the model converging to the global minimum of the loss function or for it to get stuck in a local sub-optimal minimum.
@@ -222,7 +223,7 @@ Learning rate is the fraction of the gradient that we use to update the paramete
 Since the loss function of a NN is characterized by a lot of local minima the problem of not getting stuck in them is of primary importance. An high learning rate guarantees a good exploration of the loss domain, eventually finding the global minimum. On the other hand, an high learning rate makes the model unstable, because a stabilization of the parameters won't happen unless the gradient is very close to zero (which is unlikely). This means that we need to find a trade-off between exploration and stability (similar to importance sampling). This is why other algorithms aside GD/SGD are deployed, mainly adding learning rate decay and inertia to the minimizer.
 
 <center>
-<img src="learningRatesLoss.jpg" alt="drawing" width="200"/>
+<img src="learningRatesLoss.jpg" alt="drawing" width="400"/>
 </center>
 
 ##### Learning Rate Decay
@@ -232,8 +233,53 @@ $$LR(i) = LR(0) \cdot \frac{1}{1+\varepsilon i}$$
 where $i$ is the iterations' index.
 
 #### GD with momentum
-Another solution to avoid getting stuck in a local minimum is adding an inertia term to the GD recursive equation, making it actually solve the differential equation of a ball rolling downhill.
-The inertia term can make the ball overcome a local minimum if it's not too deep. Indeed, the inertia term might make the direction of the next step pointing away from the local minimum even if the gradient would of course point towards it.
+Another solution to avoid getting stuck in a local minimum is adding an inertia term to the GD recursive equation, making it actually solve a similar differential equation to the one of a ball rolling downhill.
+The inertia term can make the ball overcome a local minimum if it's not too deep. Indeed, the inertia term might make the direction of the next step pointing away from the local minimum even if the gradient would of course point towards it. The update step is done by evaluating the velocity (or momentum) for the update by linearly combining the current momentum and the current gradient:
+$$\bm{v}_{t+1} = \beta \bm{v}_{t} - \gamma_t \nabla_{\bm{W}} \hat{L}$$
+This corresponds to the evaluation of the moving average of the gradient (which smoothens the gradient's oscillations). Then the update is given by the sum of the current weights and the updated momentum:
+$$\bm{w}_{t+1} = \bm{w}_{t} + \bm{v}_{t+1}$$
+
+**Note**: This is different to Nesterov's accelerated gradient. In NAG the gradient is evaluated wrt an intermediate step for the weight ($w_{intermediate} = w_{t} + v_{t}$), while in this algorithm it is evaluated wrt the current weights.
+**Note**: if using a decaying learning rate, for $t\rightarrow +\infty$ the weights' update won't stop.
+
+#### AdaGrad
+This algorithm introduces the idea of adapting the learning rate for each individual weight, based on the previous gradient of the weight. If the previous update on a given weight were big, then the learning rate slows down to allow other weights to catch up. The idea is that it's better to keep the weights' update as homogeneous as possible.
+
+To do so a cache of the previous updates is stored (calculates as the squared sum of the previous updates), and the next weights' update is evaluated as:
+$$\bm{w}_{t+1} = \bm{w}_{t} - \gamma_t \frac{\nabla_{\bm{W}} \hat{L}_t}{\sqrt{\sum\limits_{t=0}^{t}(\nabla_{\bm{W}} \hat{L}_{t})^2}+\epsilon}$$
+where the vector division is meant to be a component-wise division.
+**Note:** the denominator is a monotonic rising function wrt to $t$, so the weights' update will reach a stall after a certain $t$. The parameter $\epsilon$, instead, is added to avoid zero divisions.
+
+#### RMSProp
+The algorithm is identical to AdaGrad, it only changes the way the cache of changes is evaluated. Instead of:
+$$\bm{c}_{t+1} = \sum\limits_{t=0}^{t}(\nabla_{\bm{W}} \hat{L}_{t})^2$$
+that can be rewritten in the recursive form:
+$$\bm{c}_{t+1} = \bm{c}_{t} + (\nabla_{\bm{W}} \hat{L}_{t})^2$$
+RMSProp calculates the cache as:
+$$\bm{c}_{t+1} = \rho \bm{c}_{t} + (1-\rho)(\nabla_{\bm{W}} \hat{L}_{t})^2$$
+
+The purpose of this modification is to damp oscillations in the gradients' cache by introducing a moving average, similarly to momentum GD. This also enables the algorithm to keep updating the parameters regardless of the number of iterations.
+**Note:** the learning rate needs to be significantly lower than 1, because with $\rho=0.9$ the model carries a lot of momentum and a small gradient is enough to keep it going.
+
+#### Adam
+
+This algorithm is the union of momentum GD and RMSProp: it has a moving average in the gradient descent update and a per-weight adaptive learning rate with moving average in the cache. In addition it has a term that amplifies the updates at the beginning of the training, so that in the first iterations the learning process is speeded up.
+
+The algorithm is composed of the following steps (momentum evaluation changes a bit):
+- Calculate the current momentum and cache based on the current gradient:
+$$\bm{v}_{t+1} = \beta_1 \bm{v}_t + (1-\beta_1)\nabla_{\bm{W}} \hat{L}_{t}$$
+
+$$\bm{c}_{t+1} = \beta_2 \bm{c}_t + (1-\beta_2)(\nabla_{\bm{W}} \hat{L}_{t})^2$$
+
+- Divide the momentum and the cache by the amplification factor:
+$$\bm{v}_{t+1}' = \frac{\bm{v}_t}{1-\beta_1^{t+1}}$$
+
+$$\bm{c}_{t+1}' = \frac{\bm{c}_t}{1-\beta_2^{t+1}$$
+
+- Update the parameters:
+$$\bm{w}_{t+1} = \bm{w}_{t} - \gamma_t \frac{\bm{v}'_{t+1}}{\sqrt{\bm{c}_{t+1}'}+\epsilon}$$
+
+The division by $1-\beta_i^{t+1}$ amplifies the gradient and the cache for $t \ll 10$ then it stops (the +1 is to avoid zero division in the first iteration).
 
 ### Things to try
 - Add a little offset to the weights initialization so that no weight is set to zero and check if training convergence changes significantly (biases are set to zero, so in conjunction with a zero weight the neuron won't fire at the beginning of the training); eg instead of doing 

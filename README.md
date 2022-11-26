@@ -6,7 +6,7 @@ The motivation behind this project is perfectly expressed by R. Feynman's famous
 >"What I cannot create, I do not understand"
 
 #### What it does up until now
-Example of multiclass classification with Nesterov GD and decaying learning rate. A bit of overtraining (scattered points are training points).
+Example of multiclass classification with Momentum GD and decaying learning rate. A bit of overtraining (scattered points are training points).
 <center>
 <img src="screenshots/GDtest.png" alt="drawing" width="500"/>
 </center>
