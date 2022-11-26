@@ -20,6 +20,36 @@ class Loss:
         # Return loss
         return empirical_loss
 
+    # Regularization loss calculation
+    def regularizationLoss(self, layer):
+        '''
+        Calculates the forward pass of the regularization loss for a given layer.
+        Parameters:
+        @layer: layer on which evaluate the regularization loss;
+        Returns:
+        @regLoss: regularization loss of the given layer (both L1 and L2 depending on layer's settings);
+        '''
+
+        regLoss = 0
+
+        # L1 regularization - weights
+        if layer.lambda_1w > 0:
+            regLoss += layer.lambda_1w*np.sum(np.abs(layer.weights))
+        
+        # L2 regularization - weights
+        if layer.lambda_2w > 0:
+            regLoss += layer.lambda_2w*np.sum(layer.weights*layer.weights)
+
+        # L1 regularization - biases
+        if layer.lambda_1b> 0:
+            regLoss += layer.lambda_1b*np.sum(np.abs(layer.biases))
+
+        # L2 regularization - biases
+        if layer.lambda_2b > 0:
+            regLoss += layer.lambda_2b*np.sum(layer.biases*layer.biases)
+
+        return regLoss
+
 class CategoricalCrossEntropy(Loss):
     
     def forwardPass(self, yTrues, yPreds):

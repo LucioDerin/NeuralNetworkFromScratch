@@ -8,18 +8,28 @@ class DenseLayer:
     epsilon = 0
 
     # Constructor
-    def __init__(self,dInput,nNeurons):
+    def __init__(self, dInputs, nNeurons,lambda_1w=0, lambda_2w=0,lambda_1b=0, lambda_2b=0):
         '''
         Constructor, initializes the weights and the biases of the layer.
         Parameters:
         @dInput: dimensionality of the input space (with respect to to this layer);
         @nNeurons: number of neurons in this layer, i.e. layer's width;
+        @lambda_1w: regularization parameter for the L1 norm of the weights
+        @lambda_2w: regularization parameter for the L2 norm of the weights
+        @lambda_1b: regularization parameter for the L1 norm of the biases
+        @lambda_2b: regularization parameter for the L2 norm of the biases
         Modifies:
         @self.weights: weights of the layer;
         @self.biases: biases of the layer;
         '''
-        self.weights = self.scale * np.random.randn(dInput,nNeurons) + self.epsilon
-        self.biases = np.zeros((1,nNeurons))
+        # Initialize weights and biases
+        self.weights = 0.01 * np.random.randn(dInputs, nNeurons)
+        self.biases = np.zeros((1, nNeurons))
+        # Set regularization strength
+        self.lambda_1w = lambda_1w
+        self.lambda_2w = lambda_2w
+        self.lambda_1b = lambda_1b
+        self.lambda_2b = lambda_2b
 
     def forwardPass(self,inputs):
         '''
@@ -38,6 +48,7 @@ class DenseLayer:
         '''
         Evaluates the backward pass with current weights and biases on a batch of data. Results are
         stored in the public member self.dweights, self.dbiases, self.dinputs.
+        If regularization parameters are non zero, it applies the regularization gradient.
         Parameters:
         @dvalues: gradient of the activation function, shape must be (nBatch,nNeurons)
         Modifies:
@@ -49,5 +60,26 @@ class DenseLayer:
         self.dweights = self.inputs.T@dvalues
         # Gradient wrt biases
         self.dbiases = np.sum(dvalues, axis=0, keepdims=True)
+
+        # Gradients on regularization
+
+        # L1 on weights
+        if self.lambda_1w > 0:
+            dL1 = np.ones_like(self.weights)
+            dL1[self.weights < 0] = -1
+            self.dweights += self.lambda_1w*dL1
+        # L2 on weights
+        if self.lambda_2w > 0:
+            self.dweights += 2*self.lambda_2w*self.weights
+
+        # L1 on biases
+        if self.lambda_1b > 0:
+            dL1 = np.ones_like(self.biases)
+            dL1[self.biases < 0] = -1
+            self.dbiases += self.lambda_1b*dL1
+        # L2 on biases
+        if self.lambda_2b > 0:
+            self.dbiases += 2*self.lambda_2b*self.biases
+
         # Gradient wrt inputs
         self.dinputs = dvalues@self.weights.T
