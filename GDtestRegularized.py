@@ -1,6 +1,5 @@
-from timeit import timeit
 import numpy as np
-from DiyKeras.DenseLayer import DenseLayer
+from DiyKeras.Layers import DenseLayer
 from DiyKeras.ActivationFunctions import ActivationSoftmaxCategoricalCrossEntropy,ActivationSoftmax,ActivationReLU
 from DiyKeras.LossFunctions import CategoricalCrossEntropy
 from DiyKeras.Optimizers import MomentumGradientDescent,AdaGrad,RMSProp,Adam

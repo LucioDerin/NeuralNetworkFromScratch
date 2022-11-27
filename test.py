@@ -3,7 +3,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 from nnfs.datasets import spiral_data
-from DiyKeras.DenseLayer import DenseLayer
+from DiyKeras.Layers import DenseLayer
 from DiyKeras.ActivationFunctions import ActivationReLU, ActivationSoftmax
 from DiyKeras.LossFunctions import CategoricalCrossEntropy, Accuracy
 

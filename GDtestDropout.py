@@ -1,5 +1,5 @@
 import numpy as np
-from DiyKeras.Layers import DenseLayer
+from DiyKeras.Layers import DenseLayer,Dropout
 from DiyKeras.ActivationFunctions import ActivationSoftmaxCategoricalCrossEntropy,ActivationSoftmax,ActivationReLU
 from DiyKeras.LossFunctions import CategoricalCrossEntropy
 from DiyKeras.Optimizers import MomentumGradientDescent,AdaGrad,RMSProp,Adam,DecayGradientDescent
@@ -14,6 +14,8 @@ if __name__ == "__main__":
     dense1 = DenseLayer(2, 64)
     # Create ReLU activation (to be used with Dense layer):
     activation1 = ActivationReLU()
+    # Create dropout layer
+    dropout1 = Dropout(0)
     # Create second Dense layer with 64 input features (as we take output
     # of previous layer here) and 3 output values (output values)
     dense2 = DenseLayer(64, 3)
@@ -45,9 +47,11 @@ if __name__ == "__main__":
         # Perform a forward pass through activation function
         # takes the output of first dense layer here
         activation1.forwardPass(dense1.output)
+        # Perform a forward pass through Dropout layer
+        dropout1.forwardPass(activation1.output)
         # Perform a forward pass through second Dense layer
         # takes outputs of activation function of first layer as inputs
-        dense2.forwardPass(activation1.output)
+        dense2.forwardPass(dropout1.output)
         # Perform a forward pass through the activation/loss function
         # takes the output of second dense layer here and returns loss
         loss = loss_activation.forwardPass(y, dense2.output)
@@ -67,8 +71,10 @@ if __name__ == "__main__":
         # Backward pass
         loss_activation.backwardPass(y, loss_activation.output)
         dense2.backwardPass(loss_activation.dinputs)
-        activation1.backwardPass(dense2.dinputs)
+        dropout1.backwardPass(dense2.dinputs)
+        activation1.backwardPass(dropout1.dinputs)
         dense1.backwardPass(activation1.dinputs)
+
         # Update weights and biases
         optimizer.updateParams(dense1)
         optimizer.updateParams(dense2)
@@ -91,6 +97,7 @@ if __name__ == "__main__":
             # Perform a forward pass through activation function
             # takes the output of first dense layer here
             activation1.forwardPass(dense1.output)
+            #DO NOT apply dropout since this is a prediction stage
             # Perform a forward pass through second Dense layer
             # takes outputs of activation function of first layer as inputs
             dense2.forwardPass(activation1.output)

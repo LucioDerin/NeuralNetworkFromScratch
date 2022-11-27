@@ -22,11 +22,11 @@
 A batch of data from the feature space is contained in the matrix $\hat{X}$. Even though each sample in the batch is a vector in the feature space, it is common practice to treat them as row vectors inside the matrix, so that $\hat{X}$ will be an $n\times d$ matrix (with $n$ number of samples and $d$ dimensionality of the feature space). Along with this choice, for any given matrix, it is common practice to let the first index run through the cardinality of the sample, and treat vectors as row vectors. For instance, the matrix of neuron's weights will have the first index selecting the i-th neuron and the second index selecting the j-th weight of the i-th neuron. The matrix $W$ will be $w \times d$ with $w$ width of the layer (number of neurons) and $d$ dimensionality of the input.
 
 With this choices, the action of a layer on the input batch (neglecting activation functions) is:
-$$\hat{Y} = \hat{X}W^\top + b$$
+$$\bm{\hat{Y}} = \hat{X}W^\top + \bm{b}$$
 
 $\hat{X}W^\top$ is a matrix product between matrix of shapes $n\times d$ and $d \times w$ resulting in a matrix $n \times w$; the first index of the output matrix points to the output of the i-th data point, and the second index runs through the dimensionality of the output space.
 **Note 1:** Later in the book, the authors define the weights' matrix to be of shape $d \times w$ in order to get rid of the transpose operation. This has obvious computational advantages, so I will adopt their choice, making the first index of $W$ run trough the dimensionality of the input space and the second one run through the neurons in the layer. With this choice the forward pass is simply:
-$$\hat{Y} = \hat{X}W + b$$
+$$\bm{\hat{Y}} = \hat{X}W + \bm{b}$$
 and we avoid a transposition each time.
 **Note 2:** the direct sum of $\hat{X}$ and $b$ is not mathematically well defined, since b is a row vector of dimension $w$ and $\hat{X}W$ is a matrix of dimension $n \times w$. Nevertheless, in this case, `numpy` sums b to each row of $\hat{X}W$ which is exactly how a bias behaves.
 
@@ -47,7 +47,7 @@ a couple of magnitude order below, because otherwise the training will require a
 ### Activation functions
 Activation function are deployed on each layer to estimate non linear relations between the input and the output spaces. The forward pass defined as $\hat{X}W$ is linear, so it will only estimate linear target functions. If you add a bias it is non linear, but it's still a very simple model.
 The way in which NNs add the non-linearity (as opposed to kernel methods) is by wrapping all the linear model in a non-linearity (the so called activation function):
-$$\hat{Y} = \sigma(\hat{X}W + b)$$
+$$\bm{\hat{Y}} = \sigma(\hat{X}W + \bm{b})$$
 This mimics the behavior of a biological neuron.
 
 Typically all hidden layers will have the same activation function (but it's not a must), while the output layer's activation function varies based on the application (regression, binary/multiclass classification).
@@ -339,6 +339,36 @@ layer, while the regularization gradients only depend on the weights of the curr
 
 ### Dropout
 
+Dropout is another technique deployed to regularize the model and avoid overfitting. When a NN overfits it relies too much on a single neuron for a decision; in an extreme scenario, every neuron in the network is associated with one training sample similarly to what happens with leaves in decision trees. To avoid the reliance of the model on single neurons' outputs Dropout randomly suppresses connections between layers (which is qualitatively equivalent to suppress the output of some neurons). In the implementation dropout will suppress the output of a neuron, which means suppressing `nNeurons` connections, where `nNeurons` is the number of neurons of the next layer.
+This also helps mitigating the *co-adoption* phenomena: a situation in which the response of a neuron relies on the output of too few of the previous neurons.
+Dropout randomly suppresses the outputs of a fraction of the neurons at each iteration in the training by masking the output vector with a random vector of ones and zeros. In each iteration all of the neurons fire but some get suppressed: note that the neurons are suppressed only for the current iteration, then they all fire again in the next iteration and will be suppressed by another mask. **No neuron is permanently suppressed.** This procedure forces the model to estimate the underlying function with lesser neurons and with different subsets of neurons each time. This also prevents the model to store all of the information for a decision inside one single neuron.
+Dropout makes the neurons work in conjunction to estimate the underlying function altogether, instead of having subsets of neurons specialized in estimating just a part of it.
+
+#### Implementation
+Firstly, we need to set the dropout ratio $d_r$ (i.e. how many connection we want to disable).
+
+**Note:** in `Keras`/`Tensorflow` the dropout ratio is intended to be $\frac{N_{\text{Neurons suppressed}}}{N_{tot}}$; in `PyTorch` the hyperparameter for dropout is defined as $\frac{N_{\text{Neurons kept}}}{N_{tot}}$.
+
+Once we have the suppression rate we draw $nNeurons$ samples from a binomial distribution with $n=1$, $p_{[1]} = 1-d_r$, $p_{[0]} = d_r$ and we multiply the neurons' output by this vector of samples.
+
+Note that the suppression converges to the rate $d_r$ only in a statistical expectation sense, since the number of ones in the binomial samples fluctuates with $\sigma^2 = p_{[1]}p_{[0]}$.
+There is one last thing that we need to take account for: if we suppress $d_r$ neurons, the linear combination of their outputs will be about $1-d_r$ times the one without dropout so the network'd estimate inflated weights. Thus we need to scale the output to account for how many neurons we suppressed: in this way, when we will be using the NN for prediction (which does not foresees any dropout) the order of magnitude of the linear combination will be the same.
+Thus the forward pass of the layer will be:
+
+$$\bm{\hat{Y}} = \frac{(\hat{X}W + \bm{b})\bm{B}_{mask}}{1-d_r}$$
+
+where $\bm{B}_{mask}$ is the binomial mask.
+
+#### Backward pass
+Since we modified the forward pass we also need to modify the backward pass according to the chain rule of the gradient.
+We added a division only on the survived neuron outputs, so we'll have:
+$$\nabla_{\bm{w}} \bm{\hat{Y}} = \nabla_{\bm{w}} \frac{(\hat{X}W + \bm{b})\bm{B}_{mask}}{1-d_r} = \frac{1}{1-d_r}\bm{B}_{mask} \nabla_{\bm{w}} (\hat{X}W + \bm{b}) = \frac{1}{1-d_r}\bm{B}_{mask} \nabla_{old}$$
+where I've denoted with $\nabla_{old}$ the previous formulation of the backward pass (before adding the dropout procedure).
+We can see that, since the dropout does not depend on the weights, its contribution to the gradient is just a multiplication of the old gradient by $\frac{1}{1-d_r}$ if the neuron survived or by zero if the neuron has been suppressed.
+From here it's clear the action of dropout: in each optimization it blocks the update of some weights even though their gradients were not zero, and amplifies the updates of the survived neurons.
+
+**Note:** for the actual implementation it is convenient to define a dropout layer that will be interposed between a layer and the next one, and it will only apply the binary mask.
+**Note:** again for code simplicity, in the code the binary mask is redefined to absorb the $\frac{1}{1-d_r}$ factor, so it will have entries of zero or $\frac{1}{1-d_r}$.
 
 ### Things to try
 - Add a little offset to the weights initialization so that no weight is set to zero and check if training convergence changes significantly (biases are set to zero, so in conjunction with a zero weight the neuron won't fire at the beginning of the training); eg instead of doing 

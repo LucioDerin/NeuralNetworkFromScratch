@@ -8,16 +8,16 @@ class DenseLayer:
     epsilon = 0
 
     # Constructor
-    def __init__(self, dInputs, nNeurons,lambda_1w=0, lambda_2w=0,lambda_1b=0, lambda_2b=0):
+    def __init__(self, dInputs, nNeurons, lambda_1w=0, lambda_2w=0, lambda_1b=0, lambda_2b=0):
         '''
         Constructor, initializes the weights and the biases of the layer.
         Parameters:
         @dInput: dimensionality of the input space (with respect to to this layer);
         @nNeurons: number of neurons in this layer, i.e. layer's width;
-        @lambda_1w: regularization parameter for the L1 norm of the weights
-        @lambda_2w: regularization parameter for the L2 norm of the weights
-        @lambda_1b: regularization parameter for the L1 norm of the biases
-        @lambda_2b: regularization parameter for the L2 norm of the biases
+        @lambda_1w: regularization parameter for the L1 norm of the weights;
+        @lambda_2w: regularization parameter for the L2 norm of the weights;
+        @lambda_1b: regularization parameter for the L1 norm of the biases;
+        @lambda_2b: regularization parameter for the L2 norm of the biases;
         Modifies:
         @self.weights: weights of the layer;
         @self.biases: biases of the layer;
@@ -83,3 +83,42 @@ class DenseLayer:
 
         # Gradient wrt inputs
         self.dinputs = dvalues@self.weights.T
+
+class Dropout:
+
+    # Constructor
+    def __init__(self, dr):
+        '''
+        Constructor, saves the dropout ratio.
+        Parameters:
+        @dr: dropout ratio defined as Ndrop/Ntot;
+        '''
+        # convert the dropout ratio to the probability of keeping a neuron for code simplicity
+        self.p1 = 1-dr
+    
+    def forwardPass(self, inputs):
+        '''
+        Applies the binary mask on the forward pass, suppressing a fraction dr of the 
+        previous layer's neurons' outputs.
+        Parameters:
+        @inputs: matrix of outputs of the previous layer;
+        Modifies:
+        @self.binaryMask: the (scaled!) dropout mask, gets stored for the backward pass;
+        @self.output: masked output to be fed to the next layer;
+        '''
+        # Generate and save scaled mask
+        self.binaryMask = np.random.binomial(1, self.p1, size=inputs.shape)/self.p1
+        # Apply mask to output values
+        self.output = inputs*self.binaryMask
+
+    def backwardPass(self, dvalues):
+        '''
+        Calculates the backward pass of the dropout layer by multiplying the current gradient by the scaled
+        binary mask.
+        Parameters:
+        @dvalues: gradient of the previous layer;
+        Modifies:
+        @self.dinputs: updated gradient;
+        '''
+        # Gradient on values
+        self.dinputs = dvalues * self.binaryMask
