@@ -4,7 +4,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from nnfs.datasets import spiral_data
 from DiyKeras.Layers import DenseLayer
-from DiyKeras.ActivationFunctions import ActivationReLU, ActivationSoftmax
+from DiyKeras.ActivationFunctions import ReLU, Softmax
 from DiyKeras.LossFunctions import CategoricalCrossEntropy, Accuracy
 
 if __name__ == "__main__":
@@ -14,12 +14,12 @@ if __name__ == "__main__":
     # Create Dense layer with 2 input features and 3 output values
     dense1 = DenseLayer(2, 3)
     # Create ReLU activation (to be used with Dense layer):
-    activation1 = ActivationReLU()
+    activation1 = ReLU()
     # Create second Dense layer with 3 input features (dimensionality of the output
     # of the last layer) and 3 output values
     dense2 = DenseLayer(3, 3)
     # Create Softmax activation (to be used with Dense layer):
-    activation2 = ActivationSoftmax()
+    activation2 = Softmax()
 
     # Forward Passes:
 

@@ -2,7 +2,7 @@ import  numpy as np
 from DiyKeras.LossFunctions import CategoricalCrossEntropy
 
 # ReLU activation function class
-class ActivationReLU:
+class ReLU:
 
     def forwardPass(self, inputs):
         '''
@@ -33,7 +33,7 @@ class ActivationReLU:
         self.dinputs[self.inputs <= 0] = 0
 
 # Softmax activation
-class ActivationSoftmax:
+class Softmax:
 
     def forwardPass(self, inputs):
         '''
@@ -73,14 +73,14 @@ class ActivationSoftmax:
             self.dinputs[index] = jacobian_matrix@single_dvalues
 
 # Softmax activation + Categorical Cross Entropy loss
-class ActivationSoftmaxCategoricalCrossEntropy():
+class SoftmaxCategoricalCrossEntropy():
     
     # Constructor
     def __init__(self):
         '''
         Initializer, instantiates the cross-entropy loss and the softmax activation.
         '''
-        self.activation = ActivationSoftmax()
+        self.activation = Softmax()
         self.loss = CategoricalCrossEntropy()
 
     def forwardPass(self, yTrue, inputs):
@@ -152,3 +152,33 @@ class ActivationSoftmaxCategoricalCrossEntropy():
         self.dinputs[range(samples), yTrue] -= 1
         # Normalize gradient
         self.dinputs = self.dinputs / samples
+
+# Sigmoid activation
+class Sigmoid:
+
+    # Forward pass
+    def forwardPass(self, inputs):
+        '''
+        Applies the Sigmoid activation function. Results are stored in public member self.output.
+        Parameters:
+        @inputs: batch of linear combination of the inputs of the layer.
+        Modifies:
+        @self.output: array of shape (nBatch,nNeurons), non linear output of the layer;
+        '''
+        # Save input and calculate/save output
+        # of the sigmoid function
+        self.inputs = inputs
+        self.output = 1 / (1 + np.exp(-inputs))
+
+    # Backward pass
+    def backwardPass(self, dvalues):
+        '''
+        Evaluates the backward pass with current weights an biases on a batch of data. Results are
+        stored in the public member self.dinputs.
+        Parameters:
+        @dvalues: gradient of the previous layer wrt inputs, shape must be (nBatch,nNeurons);
+        Modifies:
+        @self.dinputs: array of shape (nBatch,nNeurons), gradient of the activation function;
+        '''
+        # Derivative - calculates from output of the sigmoid function
+        self.dinputs = dvalues * (1 - self.output) * self.output

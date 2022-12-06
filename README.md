@@ -21,11 +21,11 @@ Example of multiclass classification with Adam optimizer and 0.1 Dropout. Less o
 - [ ] Activation Functions (Forward and Backward pass):
     - [x] ReLU;
     - [x] Softmax;
-    - [ ] Sigmoid;
+    - [x] Sigmoid;
     - [ ] Linear;
 - [ ] Loss Functions (Forward and Backward pass):
     - [x] Categorical Cross-Entropy;
-    - [ ] Binary Cross-Entropy;
+    - [x] Binary Cross-Entropy;
     - [x] Accuracy for classification;
     - [ ] Least Squares (MSE);
 - [x] Optimizers:

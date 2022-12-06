@@ -370,6 +370,23 @@ From here it's clear the action of dropout: in each optimization it blocks the u
 **Note:** for the actual implementation it is convenient to define a dropout layer that will be interposed between a layer and the next one, and it will only apply the binary mask.
 **Note:** again for code simplicity, in the code the binary mask is redefined to absorb the $\frac{1}{1-d_r}$ factor, so it will have entries of zero or $\frac{1}{1-d_r}$.
 
+### Binary Classification
+Instead of estimating the belonging probability to each class, we now want our classifier to output 1 if the input belonged to the class 1 or 0 if it belonged to class 0.
+This yields two substantial modifications: the use of sigmoid activation (rather than softmax) since we are predicting a value between 0 and 1 and the use of binary cross-entropy instead of categorical cross-entropy.
+
+#### Sigmoid activation
+It is defined as:
+$$\sigma(x) = \frac{1}{1+e^{-x}}$$
+Its derivative is:
+$$\frac{d \sigma}{dx} = \sigma(x)(1-\sigma(x))$$
+
+#### Binary cross-entropy
+The binary cross-entropy is the categorical cross-entropy in the case of just one binary class:
+$$\hat{l}_{BCE} = -(y\ln(\hat{y}) + (1-y) \ln(1-\hat{y}))$$
+Its derivative is:
+$$\frac{d \hat{l}_{BCE}}{d\hat{y}} = -(\frac{y}{\hat{y}}-\frac{1-y}{1-\hat{y}})$$
+The total loss will be the average of the BCE on all the points in the batch, and the derivative inherits the normalization factor $\frac{1}{N}$.
+**Note:** as in categorical cross-entropy, we must avoid $\ln(0)$ and divisions by 0, so in the code we will clip the values in the range $[10^{-7},1-10^{-7}]$.
 ### Things to try
 - Add a little offset to the weights initialization so that no weight is set to zero and check if training convergence changes significantly (biases are set to zero, so in conjunction with a zero weight the neuron won't fire at the beginning of the training); eg instead of doing 
 `self.weights = self.scale * np.random.randn(shape=(nInputs,nNeurons))`

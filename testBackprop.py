@@ -1,15 +1,15 @@
 from timeit import timeit
 import numpy as np
-from DiyKeras.ActivationFunctions import ActivationSoftmaxCategoricalCrossEntropy,ActivationSoftmax
+from DiyKeras.ActivationFunctions import SoftmaxCategoricalCrossEntropy,Softmax
 from DiyKeras.LossFunctions import CategoricalCrossEntropy
 
 def f1():
-    softmax_loss = ActivationSoftmaxCategoricalCrossEntropy()
+    softmax_loss = SoftmaxCategoricalCrossEntropy()
     softmax_loss.backwardPass(class_targets, softmax_outputs)
     dvalues1 = softmax_loss.dinputs
 
 def f2():
-    activation = ActivationSoftmax()
+    activation = Softmax()
     activation.output = softmax_outputs
     loss = CategoricalCrossEntropy()
     loss.backwardPass(class_targets, softmax_outputs)
@@ -17,13 +17,13 @@ def f2():
     dvalues2 = activation.dinputs
 
 def f1Return():
-    softmax_loss = ActivationSoftmaxCategoricalCrossEntropy()
+    softmax_loss = SoftmaxCategoricalCrossEntropy()
     softmax_loss.backwardPass(class_targets, softmax_outputs)
     dvalues1 = softmax_loss.dinputs
     return dvalues1
 
 def f2Return():
-    activation = ActivationSoftmax()
+    activation = Softmax()
     activation.output = softmax_outputs
     loss = CategoricalCrossEntropy()
     loss.backwardPass(class_targets, softmax_outputs)

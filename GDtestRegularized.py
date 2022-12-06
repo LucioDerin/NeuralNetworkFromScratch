@@ -1,6 +1,6 @@
 import numpy as np
 from DiyKeras.Layers import DenseLayer
-from DiyKeras.ActivationFunctions import ActivationSoftmaxCategoricalCrossEntropy,ActivationSoftmax,ActivationReLU
+from DiyKeras.ActivationFunctions import SoftmaxCategoricalCrossEntropy,Softmax,ReLU
 from DiyKeras.LossFunctions import CategoricalCrossEntropy
 from DiyKeras.Optimizers import MomentumGradientDescent,AdaGrad,RMSProp,Adam
 from nnfs.datasets import spiral_data
@@ -15,12 +15,12 @@ if __name__ == "__main__":
     dense1 = DenseLayer(2, 64, lambda_2w=5e-4, lambda_2b=5e-4)
 
     # Create ReLU activation (to be used with Dense layer):
-    activation1 = ActivationReLU()
+    activation1 = ReLU()
     # Create second Dense layer with 64 input features (as we take output
     # of previous layer here) and 3 output values (output values)
     dense2 = DenseLayer(64, 3)
     # Create Softmax classifier's combined loss and activation
-    loss_activation = ActivationSoftmaxCategoricalCrossEntropy()
+    loss_activation = SoftmaxCategoricalCrossEntropy()
     # Create optimizer
     #optimizer = MomentumGradientdescent(momentum=0.9,decay=1e-3)
     #optimizer = AdaGrad(decay=1e-6)

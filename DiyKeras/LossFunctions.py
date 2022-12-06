@@ -52,7 +52,7 @@ class Loss:
 
 class CategoricalCrossEntropy(Loss):
     
-    def forwardPass(self, yTrues, yPreds):
+    def forwardPass(self, yTrue, yPred):
         '''
         Calculates the Categorical Cross Entropy loss function on a batch of predictions.
         Parameters:
@@ -63,24 +63,24 @@ class CategoricalCrossEntropy(Loss):
         '''
 
         # Number of samples in a batch
-        samples = len(yPreds) if isinstance(yPreds,list) else yPreds.shape[0]
+        samples = len(yPred) if isinstance(yPred,list) else yPred.shape[0]
 
         # Clip left side from being zero to prevent ln(0)
         # Clip right side from being 1+1e-7 to prevent ln(1+1e-7)<0
-        y_pred_clipped = np.clip(yPreds, 1e-7, 1 - 1e-7)
+        y_pred_clipped = np.clip(yPred, 1e-7, 1 - 1e-7)
 
         # Probabilities for target values
         # if categorical labels
-        if len(yTrues.shape) == 1:
+        if len(yTrue.shape) == 1:
             # select the column with y_true, because in categorical labels it corresponds to the 
             # index of the correct label; row are all selected, hence the use of range(samples)
-            correct_confidences = y_pred_clipped[range(samples),yTrues]
+            correct_confidences = y_pred_clipped[range(samples),yTrue]
         # if Mask values - only for one-hot encoded labels
-        elif len(yTrues.shape) == 2:
+        elif len(yTrue.shape) == 2:
             # if mask values, categorical cross entropy can be obtained by sum
             # along columns since only the right class will contribute 
             # (all of the other rows have been set to zero by multiplying by y_pred)
-            correct_confidences = np.sum(y_pred_clipped*yTrues,axis=1)
+            correct_confidences = np.sum(y_pred_clipped*yTrue,axis=1)
 
         # Losses
         negative_log_likelihoods = -np.log(correct_confidences)
@@ -113,7 +113,7 @@ class CategoricalCrossEntropy(Loss):
 
 class Accuracy(Loss):
 
-    def calculate(self,yTrues,yPreds):
+    def calculate(self,yTrue,yPred):
         '''
         Calculates the Accuracy on a batch of predictions.
         Parameters:
@@ -124,12 +124,55 @@ class Accuracy(Loss):
         '''
 
         # Predicted class is the index of the maximum of the confidence scores vector
-        predictions = np.argmax(yPreds, axis=1)
+        predictions = np.argmax(yPred, axis=1)
         # If targets are one-hot encoded - convert them
         # Similarly to predicted class,
         # the belonging category is the index of the maximum of the one-hot vector
-        if len(yTrues.shape) == 2:
-            yTrues = np.argmax(yTrues, axis=1)
+        if len(yTrue.shape) == 2:
+            yTrue = np.argmax(yTrue, axis=1)
         # True evaluates to 1; False to 0
-        accuracy = np.mean(predictions == yTrues)
+        accuracy = np.mean(predictions == yTrue)
         return accuracy
+
+# Binary cross-entropy loss
+class BinaryCrossentropy(Loss):
+
+    def forwardPass(self, yTrue, yPred):
+        '''
+        Calculates the Binary Cross Entropy loss function on a batch of predictions.
+        Parameters:
+        @yTrues: belonging category of the points;
+        @yPreds: ones or zeros, predicted belonging category of the points;
+        Returns:
+        @sampleLosses: numpy array of shape (nBatch,), loss for each prediction in the batch;
+        '''
+        # Clip data to prevent division by 0
+        # Clip both sides to not drag mean towards any value
+        yPredClipped = np.clip(yPred, 1e-7, 1 - 1e-7)
+        # Calculate sample-wise loss
+        sampleLosses = -(yTrue * np.log(yPredClipped) + (1 - yTrue) * np.log(1 - yPredClipped))
+        sampleLosses = np.mean(sampleLosses, axis=-1)
+        # Return losses
+        return sampleLosses
+    
+    def backwardPass(self, yTrue, yPred):
+        '''
+        Evaluates the backward pass wrt yPred. Result is stored in public member self.dinputs.
+        Parameters:
+        @yTrue: array of shape (nBatch,), belonging category of the points;
+        @yPred: array of shape (nBatch,), predicted belonging category of the points.
+        Modifies:
+        @self.dinputs: array of shape (nBatch, nCategories), gradient of the loss function wrt yPred;
+        '''
+        # Number of samples
+        samples = len(yPred) if isinstance(yPred,list) else yPred.shape[0]
+        # Number of outputs in every sample
+        # We'll use the first sample to count them
+        outputs = len(yPred[0]) if isinstance(yPred[0],list) else yPred[0].shape[0]
+        # Clip data to prevent division by 0
+        # Clip both sides to not drag mean towards any value
+        clippedDvalues = np.clip(yPred, 1e-7, 1 - 1e-7)
+        # Calculate gradient
+        self.dinputs = -(yTrue / clippedDvalues - (1 - yTrue) / (1 - clippedDvalues)) / outputs
+        # Normalize gradient
+        self.dinputs = self.dinputs / samples

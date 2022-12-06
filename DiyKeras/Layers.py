@@ -1,5 +1,5 @@
 import numpy as np
-from DiyKeras.ActivationFunctions import ActivationReLU, ActivationSoftmax
+#from DiyKeras.ActivationFunctions import ReLU, Softmax
 
 class DenseLayer:
     # the scale factor of the gaussian pdf by which weights are initialized
