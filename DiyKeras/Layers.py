@@ -23,7 +23,7 @@ class DenseLayer:
         @self.biases: biases of the layer;
         '''
         # Initialize weights and biases
-        self.weights = 0.01 * np.random.randn(dInputs, nNeurons)
+        self.weights = self.scale * np.random.randn(dInputs, nNeurons)
         self.biases = np.zeros((1, nNeurons))
         # Set regularization strength
         self.lambda_1w = lambda_1w

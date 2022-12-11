@@ -182,3 +182,29 @@ class Sigmoid:
         '''
         # Derivative - calculates from output of the sigmoid function
         self.dinputs = dvalues * (1 - self.output) * self.output
+
+# Linear activation
+class Linear:
+
+    def forwardPass(self, inputs):
+        '''
+        Applies the Linear activation function. Results are stored in public member self.output.
+        Parameters:
+        @inputs: batch of linear combination of the inputs of the layer.
+        Modifies:
+        @self.output: array of shape (nBatch,nNeurons), non linear output of the layer;
+        '''
+        # Just remember values
+        #self.inputs = inputs
+        self.output = inputs
+
+    def backwardPass(self, dvalues):
+        '''
+        Evaluates the backward pass (identity). Results are
+        stored in the public member self.dinputs.
+        Parameters:
+        @dvalues: gradient of the previous layer wrt inputs, shape must be (nBatch,nNeurons);
+        Modifies:
+        @self.dinputs: array of shape (nBatch,nNeurons), gradient of the activation function;
+        '''
+        self.dinputs = dvalues.copy()

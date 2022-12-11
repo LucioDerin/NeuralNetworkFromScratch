@@ -18,16 +18,17 @@ Example of multiclass classification with Adam optimizer and 0.1 Dropout. Less o
 
 #### Project Checklist
 - [x] Dense Layer (Forward and Backward pass);
-- [ ] Activation Functions (Forward and Backward pass):
+- [x] Activation Functions (Forward and Backward pass):
     - [x] ReLU;
     - [x] Softmax;
     - [x] Sigmoid;
-    - [ ] Linear;
-- [ ] Loss Functions (Forward and Backward pass):
+    - [x] Linear;
+- [x] Loss Functions (Forward and Backward pass):
     - [x] Categorical Cross-Entropy;
     - [x] Binary Cross-Entropy;
     - [x] Accuracy for classification;
-    - [ ] Least Squares (MSE);
+    - [x] Mean Squared Error (MSE);
+    - [x] Mean Absolute Error (MAE);
 - [x] Optimizers:
     - [x] Vanilla GD;
     - [x] Decay GD;

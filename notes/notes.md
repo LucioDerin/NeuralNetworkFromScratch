@@ -15,6 +15,10 @@
 - `test.py`: a small test of the forward pass of the implemented classes;
 - `testBackprop.py`: a small test of the backward pass of the implemented classes;
 - `GDtest.py`: a small test of the minimization process;
+- `GDtestDropout.py`: a small test of the minimization process with dropout;
+- `GDtestRegularized.py`:  a small test of the minimization process with $L_1$ and $L_2$ regularizations;
+- `testBinaryClassification.py`: a test for binary classification;
+- `regressionTest.py`: a test for a regression model;
 
 ## General Notes
 
@@ -387,9 +391,36 @@ Its derivative is:
 $$\frac{d \hat{l}_{BCE}}{d\hat{y}} = -(\frac{y}{\hat{y}}-\frac{1-y}{1-\hat{y}})$$
 The total loss will be the average of the BCE on all the points in the batch, and the derivative inherits the normalization factor $\frac{1}{N}$.
 **Note:** as in categorical cross-entropy, we must avoid $\ln(0)$ and divisions by 0, so in the code we will clip the values in the range $[10^{-7},1-10^{-7}]$.
+
+### Regression
+In order to create a regression algorithm we need to change a few things: at least the output layer's activation function and the loss function.
+
+#### Linear activation function
+In regression algorithms this is typically the choice for the last layer's activation function: this function enables the network to predict values without bounds. The linear activation function is the identity $y = x$ and consequently its derivative is $y' = 1$.
+**Note:** since this function does not alter the inputs and multiplies by 1 the gradient leaving it unchanged, it technically does nothing. It is implemented only to maintain an architectural coherence.
+
+#### MSE (Mean Squared Error) loss
+MSE is defined as:
+$$l(y,\hat{y}) = \frac{(y-\hat{y})^2}{dim(\text{output})}$$
+$$\hat{L} = \frac{1}{N}\sum\limits_{i=1}^{N} l(y_i,\hat{y}_i)$$
+It is squared to penalize more strongly points that are far away from true values. MAE (Mean Absolute Error) sums the absolute values of the error, relaxing this request.
+
+The derivative of the loss is:
+$$\frac{\partial l}{\partial \hat{y}_i} = -\frac{2}{dim(\text{output})}(y_i-\hat{y}_i)$$
+
+#### MAE (Mean Absolute Error) Loss
+The MAE penalizes linearly wrt the distance from the predictions. This encourage sparsity and robustness towards outlier points (which can be advantages or disadvantages).
+MAE is defined as:
+$$l(y,\hat{y}) = \frac{|y-\hat{y}|}{dim(\text{output})}$$
+$$\hat{L} = \frac{1}{N}\sum\limits_{i=1}^{N} l(y_i,\hat{y}_i)$$
+
+The derivative of MAE is:
+$$\frac{\partial l}{\partial \hat{y}_i} = -\frac{\text{sign}(y_i - \hat{y}_i)}{dim(\text{output})}$$
+
 ### Things to try
 - Add a little offset to the weights initialization so that no weight is set to zero and check if training convergence changes significantly (biases are set to zero, so in conjunction with a zero weight the neuron won't fire at the beginning of the training); eg instead of doing 
 `self.weights = self.scale * np.random.randn(shape=(nInputs,nNeurons))`
 do
 `self.weights = self.scale * np.random.randn(shape=(nInputs,nNeurons)) + self.epsilon`
+    **Note:** tried it in regression: it helps avoid vanishing gradients!
 - Explicitly force the minimization of the confidence score in the wrong classes in categorical cross-entropy, and see if it speeds up convergence.

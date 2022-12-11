@@ -4,17 +4,17 @@ class Loss:
 
     # Calculates the empirical loss
     # given model output and ground truth values
-    def calculate(self, yTrues, yPreds):
+    def calculate(self, yTrue, yPred):
         '''
         Calculates the empirical loss on a batch of data.
         Parameters:
-        @yTrues: the true values;
-        @yPreds: the confidence scores;
+        @yTrue: the true values;
+        @yPred: the confidence scores;
         Returns:
         @empirical_loss: float, the empirical loss on the batch.
         '''
         # Calculate sample losses
-        sample_losses = self.forwardPass(yTrues, yPreds)
+        sample_losses = self.forwardPass(yTrue, yPred)
         # Calculate mean loss
         empirical_loss = np.mean(sample_losses)
         # Return loss
@@ -56,8 +56,8 @@ class CategoricalCrossEntropy(Loss):
         '''
         Calculates the Categorical Cross Entropy loss function on a batch of predictions.
         Parameters:
-        @yTrues: belonging category of the points, can be categorical labels or one-hot vector representation.
-        @yPreds: batch of confidence scores;
+        @yTrue: belonging category of the points, can be categorical labels or one-hot vector representation.
+        @yPred: batch of confidence scores;
         Returns:
         @negative_log_likelihood: numpy array of shape (nBatch,), loss for each prediction in the batch;
         '''
@@ -117,8 +117,8 @@ class Accuracy(Loss):
         '''
         Calculates the Accuracy on a batch of predictions.
         Parameters:
-        @yTrues: belonging category of the points, can be categorical labels or one-hot vector representation.
-        @yPreds: batch of confidence scores;
+        @yTrue: belonging category of the points, can be categorical labels or one-hot vector representation.
+        @yPred: batch of confidence scores;
         Returns:
         @accuracy: float, the percentage of correct predictions;
         '''
@@ -141,8 +141,8 @@ class BinaryCrossentropy(Loss):
         '''
         Calculates the Binary Cross Entropy loss function on a batch of predictions.
         Parameters:
-        @yTrues: belonging category of the points;
-        @yPreds: ones or zeros, predicted belonging category of the points;
+        @yTrue: belonging category of the points;
+        @yPred: ones or zeros, predicted belonging category of the points;
         Returns:
         @sampleLosses: numpy array of shape (nBatch,), loss for each prediction in the batch;
         '''
@@ -174,5 +174,77 @@ class BinaryCrossentropy(Loss):
         clippedDvalues = np.clip(yPred, 1e-7, 1 - 1e-7)
         # Calculate gradient
         self.dinputs = -(yTrue / clippedDvalues - (1 - yTrue) / (1 - clippedDvalues)) / outputs
+        # Normalize gradient
+        self.dinputs = self.dinputs / samples
+
+# Mean Squared Error loss
+class MSE(Loss): # L2 loss
+
+    def forwardPass(self, yTrue, yPred):
+        '''
+        Calculates the MSE loss function on a batch of predictions.
+        Parameters:
+        @yTrue: belonging category of the points;
+        @yPred: predictions on the points;
+        Returns:
+        @sampleLosses: numpy array of shape (nBatch,), loss for each prediction in the batch;
+        '''
+        # Calculate loss
+        sampleLosses = np.mean((yTrue - yPred)**2, axis=-1)
+        # Return losses
+        return sampleLosses
+
+    def backwardPass(self, yTrue, yPred):
+        '''
+        Evaluates the backward pass wrt yPred. Result is stored in public member self.dinputs.
+        Parameters:
+        @yTrue: array of shape (nBatch,), belonging category of the points;
+        @yPred: array of shape (nBatch,), predicted belonging category of the points.
+        Modifies:
+        @self.dinputs: array of shape (nBatch, nCategories), gradient of the loss function wrt yPred;
+        '''
+        # Number of samples
+        samples = len(yPred)
+        # Number of outputs in every sample
+        # We'll use the first sample to count them
+        outputs = len(yPred[0])
+        # Gradient on values
+        self.dinputs = -2 * (yTrue - yPred) / outputs
+        # Normalize gradient
+        self.dinputs = self.dinputs / samples
+
+# Mean Absolute Error loss
+class Loss_MeanAbsoluteError(Loss): # L1 loss
+
+    def forward(self, yTrue, yPred):
+        '''
+        Calculates the MAE loss function on a batch of predictions.
+        Parameters:
+        @yTrue: belonging category of the points;
+        @yPred: predictions on the points;
+        Returns:
+        @sampleLosses: numpy array of shape (nBatch,), loss for each prediction in the batch;
+        '''
+        # Calculate loss
+        sampleLosses = np.mean(np.abs(yTrue - yPred), axis=-1)
+        # Return losses
+        return sampleLosses
+
+    def backward(self, yTrue, yPred):
+        '''
+        Evaluates the backward pass wrt yPred. Result is stored in public member self.dinputs.
+        Parameters:
+        @yTrue: array of shape (nBatch,), belonging category of the points;
+        @yPred: array of shape (nBatch,), predicted belonging category of the points.
+        Modifies:
+        @self.dinputs: array of shape (nBatch, nCategories), gradient of the loss function wrt yPred;
+        '''
+        # Number of samples
+        samples = len(yPred)
+        # Number of outputs in every sample
+        # We'll use the first sample to count them
+        outputs = len(yPred[0])
+        # Calculate gradient
+        self.dinputs = np.sign(yTrue - yPred) / outputs
         # Normalize gradient
         self.dinputs = self.dinputs / samples
