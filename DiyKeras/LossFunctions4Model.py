@@ -2,9 +2,41 @@ import numpy as np
 
 class Loss:
 
+    # Set/remember trainable layers
+    def rememberTrainableLayers(self, trainableLayers):
+        self.trainableLayers = trainableLayers
+
+    # Regularization loss calculation
+    def regularizationLoss(self):
+        '''
+        Calculates the forward pass of the regularization loss iterating over trainable layers.
+        Returns:
+        @regLoss: regularization loss of the given layer (both L1 and L2 depending on layer's settings);
+        '''
+        # 0 by default
+        regLoss = 0
+        # Calculate regularization loss
+        # iterate all trainable layers
+        for layer in self.trainableLayers:
+            # L1 regularization - weights
+            # calculate only when factor greater than 0
+            if layer.lambda_1w > 0:
+                regLoss += layer.lambda_1w*np.sum(np.abs(layer.weights))
+            # L2 regularization - weights
+            if layer.lambda_2w > 0:
+                regLoss += layer.lambda_2w*np.sum(layer.weights*layer.weights)
+            # L1 regularization - biases
+            # calculate only when factor greater than 0
+            if layer.lambda_1b > 0:
+                regLoss += layer.lambda_1b*np.sum(np.abs(layer.biases))
+            # L2 regularization - biases
+            if layer.lambda_2b > 0:
+                regLoss += layer.lambda_2b*np.sum(layer.biases*layer.biases)
+        return regLoss
+
     # Calculates the empirical loss
     # given model output and ground truth values
-    def calculate(self, yTrue, yPred):
+    def calculate(self, yTrue, yPred,*,includeRegularization=False):
         '''
         Calculates the empirical loss on a batch of data.
         Parameters:
@@ -17,38 +49,12 @@ class Loss:
         sampleLosses = self.forwardPass(yTrue, yPred)
         # Calculate mean loss
         empiricalLoss = np.mean(sampleLosses)
+
+        # If just data loss (for validation loss) - return it
+        if not includeRegularization:
+            return empiricalLoss
         # Return loss
-        return empiricalLoss
-
-    # Regularization loss calculation
-    def regularizationLoss(self, layer):
-        '''
-        Calculates the forward pass of the regularization loss for a given layer.
-        Parameters:
-        @layer: layer on which evaluate the regularization loss;
-        Returns:
-        @regLoss: regularization loss of the given layer (both L1 and L2 depending on layer's settings);
-        '''
-
-        regLoss = 0
-
-        # L1 regularization - weights
-        if layer.lambda_1w > 0:
-            regLoss += layer.lambda_1w*np.sum(np.abs(layer.weights))
-        
-        # L2 regularization - weights
-        if layer.lambda_2w > 0:
-            regLoss += layer.lambda_2w*np.sum(layer.weights*layer.weights)
-
-        # L1 regularization - biases
-        if layer.lambda_1b> 0:
-            regLoss += layer.lambda_1b*np.sum(np.abs(layer.biases))
-
-        # L2 regularization - biases
-        if layer.lambda_2b > 0:
-            regLoss += layer.lambda_2b*np.sum(layer.biases*layer.biases)
-
-        return regLoss
+        return empiricalLoss, self.regularizationLoss()
 
 class CategoricalCrossEntropy(Loss):
     
@@ -110,29 +116,6 @@ class CategoricalCrossEntropy(Loss):
         self.dinputs = -yTrue / yPred
         # Normalize gradient
         self.dinputs = self.dinputs / nSamples
-
-class Accuracy(Loss):
-
-    def calculate(self,yTrue,yPred):
-        '''
-        Calculates the Accuracy on a batch of predictions.
-        Parameters:
-        @yTrue: belonging category of the points, can be categorical labels or one-hot vector representation.
-        @yPred: batch of confidence scores;
-        Returns:
-        @accuracy: float, the percentage of correct predictions;
-        '''
-
-        # Predicted class is the index of the maximum of the confidence scores vector
-        predictions = np.argmax(yPred, axis=1)
-        # If targets are one-hot encoded - convert them
-        # Similarly to predicted class,
-        # the belonging category is the index of the maximum of the one-hot vector
-        if len(yTrue.shape) == 2:
-            yTrue = np.argmax(yTrue, axis=1)
-        # True evaluates to 1; False to 0
-        accuracy = np.mean(predictions == yTrue)
-        return accuracy
 
 # Binary cross-entropy loss
 class BinaryCrossentropy(Loss):

@@ -1,6 +1,12 @@
 import numpy as np
 #from DiyKeras.ActivationFunctions import ReLU, Softmax
 
+# Input "layer"
+class InputLayer:
+    # Forward pass
+    def forwardPass(self, inputs):
+        self.output = inputs
+
 class DenseLayer:
     # the scale factor of the gaussian pdf by which weights are initialized
     scale = 0.01
